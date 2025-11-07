@@ -1,0 +1,51 @@
+repos:
+  - repo: https://github.com/doublify/pre-commit-rust
+    rev: v1.0
+    hooks:
+      - id: fmt
+        name: cargo fmt
+        description: Format Rust code with cargo fmt
+      - id: cargo-check
+        name: cargo check
+        description: Check Rust code with cargo check
+      - id: clippy
+        name: cargo clippy
+        description: Lint Rust code with cargo clippy
+        args: ["--all-targets", "--all-features", "--", "-D", "warnings"]
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-yaml
+        name: Check YAML files
+      - id: check-toml
+        name: Check TOML files
+      - id: end-of-file-fixer
+        name: Fix end of files
+      - id: trailing-whitespace
+        name: Trim trailing whitespace
+      - id: mixed-line-ending
+        name: Fix mixed line endings
+        args: ["--fix=lf"]
+
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.4
+    hooks:
+      - id: actionlint
+        name: Lint GitHub Actions workflows
+
+  - repo: https://github.com/scop/pre-commit-shfmt
+    rev: v3.10.0-1
+    hooks:
+      - id: shfmt
+        name: Format shell scripts
+        args: ["-i", "2", "-ci", "-bn"]
+
+  # https://github.com/dprint/dprint/issues/442
+  - repo: local
+    hooks:
+      - id: dprint
+        name: Format with dprint (YAML, TOML, Markdown, JSON)
+        entry: dprint fmt
+        language: system
+        types_or: [yaml, toml, markdown, json]
