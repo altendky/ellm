@@ -100,7 +100,7 @@ jobs:
       - uses: dprint/check@v2.3
         with:
           # trigger installation for pre-commit below
-          args: --help
+          args: --help | true
 
       - name: Set up Python
         uses: actions/setup-python@v5
