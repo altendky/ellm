@@ -1,6 +1,6 @@
 use anyhow::Result;
 use clap::Parser;
-use ellm::{ClaudeError, Client, Config};
+use ellm::{Client, Config};
 
 mod cli;
 use cli::{Cli, Commands};
@@ -92,18 +92,11 @@ async fn bool(cli: Cli, message: String) -> Result<bool> {
     let response = client
         .send_message(
             message,
-            Some("answer with exactly one word from either yes or no".to_string()),
+            Some("answer with a json-serialized boolean and no markup".to_string()),
         )
         .await?;
-    let trimmed = response.trim();
-
-    println!("{}", trimmed);
-
-    let result = match trimmed {
-        "yes" => true,
-        "no" => false,
-        _ => Err(ClaudeError::Bool(trimmed.into()))?,
-    };
+    let result = serde_json::from_str(&response)?;
+    println!("{}", response);
 
     Ok(result)
 }
