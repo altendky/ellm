@@ -4,6 +4,7 @@ use ellm::{Client, Config};
 
 mod cli;
 use cli::{Cli, Commands};
+use serde::Deserialize;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -17,7 +18,7 @@ async fn main() -> Result<()> {
             show_config(cli)?;
         }
         Commands::Bool { question } => {
-            match bool(cli, question).await? {
+            match bool(cli, question).await?.answer {
                 true => (),
                 // TODO: is this actually kind with tokio?
                 false => std::process::exit(1),
@@ -43,7 +44,7 @@ async fn send_message(cli: Cli, message: String) -> Result<()> {
 
     println!("Sending message to Claude...\n");
 
-    let response = client.send_message(message, None).await?;
+    let response = client.send_message(message, None, None).await?;
 
     println!("{}", response);
 
@@ -74,7 +75,14 @@ fn show_config(cli: Cli) -> Result<()> {
     Ok(())
 }
 
-async fn bool(cli: Cli, message: String) -> Result<bool> {
+#[derive(Debug, Deserialize)]
+#[allow(dead_code)]
+struct BoolResponse {
+    answer: bool,
+    explanation: String,
+}
+
+async fn bool(cli: Cli, message: String) -> Result<BoolResponse> {
     // Load configuration with priority: CLI arg > env var > config file
     let mut config = Config::load(cli.api_key)?;
 
@@ -82,21 +90,26 @@ async fn bool(cli: Cli, message: String) -> Result<bool> {
     if let Some(model) = cli.model {
         config = config.with_model(model);
     }
-    config = config.with_max_tokens(1);
+    config = config.with_max_tokens(cli.max_tokens);
 
     // Create client and send message
     let client = Client::new(config)?;
 
     println!("Sending message to Claude...\n");
 
-    let response = client
-        .send_message(
-            message,
-            Some("answer with a json-serialized boolean and no markup".to_string()),
-        )
+    // https://github.com/anthropics/claude-cookbooks/blob/main/misc/how_to_enable_json_mode.ipynb
+    let system = concat!(
+        "consider the question or statement and answer with a true or false.",
+        "\nencode the result to a json object.",
+        "\nthe object should have a key 'answer' with a boolean value.",
+        "\nthe object should have a key 'explanation' with a string value.",
+    );
+    let mut response = client
+        .send_message(message, Some("{".to_string()), Some(system.to_string()))
         .await?;
-    let result = serde_json::from_str(&response)?;
+    response.insert_str(0, "{\n");
     println!("{}", response);
+    let result = serde_json::from_str(&response)?;
 
     Ok(result)
 }
