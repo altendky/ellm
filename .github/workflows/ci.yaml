@@ -6,13 +6,17 @@ on:
   pull_request:
     branches: ["**"]
 
+defaults:
+  run:
+    shell: bash
+
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
 
 jobs:
   test:
-    name: Test ${{ matrix.os.name }}
+    name: 🧪 Test ${{ matrix.os.name }}
     runs-on: ${{ matrix.os.runs-on }}
     strategy:
       fail-fast: false
@@ -31,34 +35,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
-
-      - name: Cache cargo registry
-        uses: actions/cache@v4
-        with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-registry-
-
-      - name: Cache cargo index
-        uses: actions/cache@v4
-        with:
-          path: ~/.cargo/git
-          key: ${{ runner.os }}-cargo-git-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-git-
-
-      - name: Cache target directory
-        uses: actions/cache@v4
-        with:
-          path: target
-          key: ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-target-
+      - uses: ./.github/actions/setup-rust
 
       - name: Check formatting
         run: cargo fmt --all -- --check
@@ -73,7 +50,7 @@ jobs:
         run: cargo test --verbose
 
   pre-commit:
-    name: Pre-commit ${{ matrix.os.name }}
+    name: ⚠️ Pre-commit ${{ matrix.os.name }}
     runs-on: ${{ matrix.os.runs-on }}
     strategy:
       fail-fast: false
@@ -89,13 +66,14 @@ jobs:
             runs-on: macos-latest
             matrix: macos
     steps:
+      - name: Disable git autocrlf
+        run: |
+          git config --global core.autocrlf false
+
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
+      - uses: ./.github/actions/setup-rust
 
       - name: Install dprint
         run: cargo install dprint
@@ -107,3 +85,17 @@ jobs:
 
       - name: Run pre-commit
         uses: pre-commit/action@v3.0.1
+
+  required:
+    if: always()
+    name: 🏁 Required
+    runs-on: ubuntu-latest
+    needs:
+      - test
+      - pre-commit
+
+    steps:
+      - uses: re-actors/alls-green@release/v1.2
+        id: alls-green
+        with:
+          jobs: ${{ toJSON(needs) }}
