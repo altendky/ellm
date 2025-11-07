@@ -89,6 +89,10 @@ jobs:
             runs-on: macos-latest
             matrix: macos
     steps:
+      - name: Disable git autocrlf
+        run: |
+          git config --global core.autocrlf false
+
       - name: Checkout code
         uses: actions/checkout@v4
 
