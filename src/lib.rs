@@ -23,7 +23,7 @@
 //!     let client = Client::new(config)?;
 //!
 //!     // Send a message
-//!     let response = client.send_message("Hello, Claude!").await?;
+//!     let response = client.send_message("Hello, Claude!", None).await?;
 //!     println!("Response: {}", response);
 //!
 //!     Ok(())

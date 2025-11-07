@@ -14,6 +14,8 @@ pub struct Client {
 struct MessageRequest {
     model: String,
     max_tokens: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    system: Option<String>,
     messages: Vec<Message>,
 }
 
@@ -80,7 +82,11 @@ impl Client {
     }
 
     /// Send a message to Claude and get a response
-    pub async fn send_message(&self, content: impl Into<String>) -> Result<String> {
+    pub async fn send_message(
+        &self,
+        content: impl Into<String>,
+        system: Option<String>,
+    ) -> Result<String> {
         let message = Message {
             role: "user".to_string(),
             content: content.into(),
@@ -89,6 +95,7 @@ impl Client {
         let request = MessageRequest {
             model: self.config.model.clone(),
             max_tokens: self.config.max_tokens,
+            system,
             messages: vec![message],
         };
 
@@ -168,6 +175,7 @@ mod tests {
         let request = MessageRequest {
             model: "claude-sonnet-4-5-20250929".to_string(),
             max_tokens: 1024,
+            system: None,
             messages: vec![Message {
                 role: "user".to_string(),
                 content: "Hello".to_string(),

@@ -1,6 +1,6 @@
 use anyhow::Result;
 use clap::Parser;
-use ellm::{Client, Config};
+use ellm::{ClaudeError, Client, Config};
 
 mod cli;
 use cli::{Cli, Commands};
@@ -15,6 +15,13 @@ async fn main() -> Result<()> {
         }
         Commands::Config => {
             show_config(cli)?;
+        }
+        Commands::Bool { question } => {
+            match bool(cli, question).await? {
+                true => (),
+                // TODO: is this actually kind with tokio?
+                false => std::process::exit(1),
+            };
         }
     }
 
@@ -36,7 +43,7 @@ async fn send_message(cli: Cli, message: String) -> Result<()> {
 
     println!("Sending message to Claude...\n");
 
-    let response = client.send_message(message).await?;
+    let response = client.send_message(message, None).await?;
 
     println!("{}", response);
 
@@ -65,4 +72,38 @@ fn show_config(cli: Cli) -> Result<()> {
     }
 
     Ok(())
+}
+
+async fn bool(cli: Cli, message: String) -> Result<bool> {
+    // Load configuration with priority: CLI arg > env var > config file
+    let mut config = Config::load(cli.api_key)?;
+
+    // Apply CLI overrides
+    if let Some(model) = cli.model {
+        config = config.with_model(model);
+    }
+    config = config.with_max_tokens(1);
+
+    // Create client and send message
+    let client = Client::new(config)?;
+
+    println!("Sending message to Claude...\n");
+
+    let response = client
+        .send_message(
+            message,
+            Some("answer with exactly one word from either yes or no".to_string()),
+        )
+        .await?;
+    let trimmed = response.trim();
+
+    println!("{}", trimmed);
+
+    let result = match trimmed {
+        "yes" => true,
+        "no" => false,
+        _ => Err(ClaudeError::Bool(trimmed.into()))?,
+    };
+
+    Ok(result)
 }

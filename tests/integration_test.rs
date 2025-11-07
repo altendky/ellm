@@ -63,7 +63,7 @@ mod live_tests {
         let client = Client::new(config).expect("Failed to create client");
 
         let response = client
-            .send_message("Say 'Hello' and nothing else.")
+            .send_message("Say 'Hello' and nothing else.", None)
             .await
             .expect("API call failed");
 
