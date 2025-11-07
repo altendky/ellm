@@ -1,0 +1,18 @@
+name: setup-rust
+description: setup rust and caching
+runs:
+  using: "composite"
+  steps:
+    - uses: dtolnay/rust-toolchain@1.91.0
+      with:
+        components: rustfmt, clippy
+
+    - name: Set environment variables
+      shell: bash
+      run: |
+        echo "RUSTC_WRAPPER=sccache" >> "$GITHUB_ENV"
+        echo "SCCACHE_GHA_ENABLED=true" >> "$GITHUB_ENV"
+
+    - uses: swatinem/rust-cache@v2
+
+    - uses: mozilla-actions/sccache-action@v0.0.9
