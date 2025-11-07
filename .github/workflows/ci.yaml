@@ -97,10 +97,9 @@ jobs:
         with:
           components: rustfmt, clippy
 
-      - uses: dprint/check@v2.3
+      - uses: altendky/dprint-check@altendky-patch-1
         with:
-          # trigger installation for pre-commit below
-          args: --help | true
+          install-only: true
 
       - name: Set up Python
         uses: actions/setup-python@v5
