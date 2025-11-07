@@ -16,7 +16,7 @@ env:
 
 jobs:
   test:
-    name: Test ${{ matrix.os.name }}
+    name: 🧪 Test ${{ matrix.os.name }}
     runs-on: ${{ matrix.os.runs-on }}
     strategy:
       fail-fast: false
@@ -50,7 +50,7 @@ jobs:
         run: cargo test --verbose
 
   pre-commit:
-    name: Pre-commit ${{ matrix.os.name }}
+    name: ⚠️ Pre-commit ${{ matrix.os.name }}
     runs-on: ${{ matrix.os.runs-on }}
     strategy:
       fail-fast: false
@@ -88,7 +88,7 @@ jobs:
 
   required:
     if: always()
-    name: Required
+    name: 🏁 Required
     runs-on: ubuntu-latest
     needs:
       - test
