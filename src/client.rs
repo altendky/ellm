@@ -28,6 +28,45 @@ pub struct Message {
     pub content: String,
 }
 
+// TODO: do i really want Clone?
+#[derive(Clone, Debug, Serialize)]
+pub struct Messages {
+    _messages: Vec<Message>,
+}
+
+impl Default for Messages {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Messages {
+    pub fn new() -> Messages {
+        Messages { _messages: vec![] }
+    }
+
+    pub fn as_vec(self) -> Vec<Message> {
+        self._messages
+    }
+
+    pub fn push_user(&mut self, content: String) -> &mut Self {
+        self._messages.push(Message {
+            role: "user".into(),
+            content,
+        });
+
+        self
+    }
+
+    pub fn push_assistant(&mut self, content: String) -> &mut Self {
+        self._messages.push(Message {
+            role: "assistant".into(),
+            content,
+        });
+
+        self
+    }
+}
 /// Response structure from the Messages API
 #[derive(Debug, Deserialize)]
 #[allow(dead_code)]
@@ -86,24 +125,12 @@ impl Client {
     /// Send a message to Claude and get a response
     pub async fn send_message(
         &self,
-        content: impl Into<String>,
+        mut messages: Messages,
         lead: Option<String>,
         system: Option<String>,
     ) -> Result<String> {
-        let message = Message {
-            role: "user".to_string(),
-            content: content.into(),
-        };
-        let messages = if let Some(lead) = lead {
-            vec![
-                message,
-                Message {
-                    role: "assistant".to_string(),
-                    content: lead,
-                },
-            ]
-        } else {
-            vec![message]
+        if let Some(lead) = lead {
+            messages.push_assistant(lead);
         };
 
         let request = MessageRequest {
@@ -111,7 +138,7 @@ impl Client {
             max_tokens: self.config.max_tokens,
             system,
             temperature: Some(0f32),
-            messages,
+            messages: messages.as_vec(),
         };
 
         let url = format!("{}/messages", self.config.base_url);

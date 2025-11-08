@@ -1,6 +1,6 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use clap::Parser;
-use ellm::{Client, Config};
+use ellm::{Client, Config, Messages};
 
 mod cli;
 use cli::{Cli, Commands};
@@ -44,7 +44,9 @@ async fn send_message(cli: Cli, message: String) -> Result<()> {
 
     println!("Sending message to Claude...\n");
 
-    let response = client.send_message(message, None, None).await?;
+    let response = client
+        .send_message(Messages::new().push_user(message).clone(), None, None)
+        .await?;
 
     println!("{}", response);
 
@@ -97,19 +99,51 @@ async fn bool(cli: Cli, message: String) -> Result<BoolResponse> {
 
     println!("Sending message to Claude...\n");
 
-    // https://github.com/anthropics/claude-cookbooks/blob/main/misc/how_to_enable_json_mode.ipynb
     let system = concat!(
         "consider the question or statement and answer with a true or false.",
+        "\nwhen unable to assess as a question or statement, default to false and explain.",
         "\nencode the result to a json object.",
         "\nthe object should have a key 'answer' with a boolean value.",
         "\nthe object should have a key 'explanation' with a string value.",
     );
-    let mut response = client
-        .send_message(message, Some("{".to_string()), Some(system.to_string()))
-        .await?;
-    response.insert_str(0, "{\n");
-    println!("{}", response);
-    let result = serde_json::from_str(&response)?;
 
-    Ok(result)
+    let mut result: Option<BoolResponse> = None;
+    let mut messages = Messages::new().push_user(message).clone();
+    'retry: for _retry in 0..3 {
+        // https://github.com/anthropics/claude-cookbooks/blob/main/misc/how_to_enable_json_mode.ipynb
+        let lead = "{";
+        let mut response = client
+            .send_message(
+                messages.clone(),
+                Some(lead.into()),
+                Some(system.to_string()),
+            )
+            .await?;
+        response.insert_str(0, lead);
+
+        println!("{}", response);
+        if let Err(error) = json::parse(&response) {
+            println!("{}", error);
+            messages.push_assistant(response);
+            messages.push_user(error.to_string());
+            continue 'retry;
+        }
+        match serde_json::from_str::<BoolResponse>(&response) {
+            Ok(r) => {
+                result = Some(r);
+                break 'retry;
+            }
+            Err(error) => {
+                println!("{}", error);
+                messages.push_assistant(response);
+                messages.push_user(format!("response did not match schema: {}", error));
+                continue 'retry;
+            }
+        }
+    }
+
+    match result {
+        Some(r) => Ok(r),
+        None => Err(anyhow!("failed despite retries")),
+    }
 }

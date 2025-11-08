@@ -35,7 +35,7 @@ mod config;
 mod error;
 
 // Re-export main types
-pub use client::{Client, Message};
+pub use client::{Client, Message, Messages};
 pub use config::Config;
 pub use error::{ApiError, ClaudeError, ConfigError, Result};
 
