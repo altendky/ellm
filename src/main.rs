@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use anyhow::{anyhow, Result};
 use clap::Parser;
 use ellm::{Client, Config, Messages};
@@ -33,6 +35,9 @@ async fn main() -> Result<()> {
                 // TODO: is this actually kind with tokio?
                 false => std::process::exit(1),
             };
+        }
+        Commands::Book { message } => {
+            book(cli, message).await?;
         }
     }
 
@@ -84,6 +89,41 @@ struct BoolResponse {
     answer: bool,
     /// provide an explanation of how you reached the answer
     explanation: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[allow(dead_code)]
+struct Book {
+    title: String,
+    authors: Vec<String>,
+    /// score as 1 if no indication given
+    #[schemars(range(min = -2, max = 2))]
+    score: i8,
+    themes: Vec<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[allow(dead_code)]
+struct Series {
+    title: String,
+    authors: Vec<String>,
+    /// score as null if no indication given
+    #[schemars(range(min = -1, max = 1))]
+    score: Option<i8>,
+    books: Vec<Book>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[allow(dead_code)]
+struct BookResponse {
+    books: Vec<Book>,
+    series: Vec<Series>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[allow(dead_code)]
+struct RecommendationResponse {
+    books: Vec<Book>,
 }
 
 /// Sends a message to the Claude API with retry logic for JSON responses.
@@ -170,4 +210,68 @@ async fn bool(cli: Cli, message: String) -> Result<BoolResponse> {
     let messages = Messages::new().push_user(message).clone();
 
     send_with_json_retry::<BoolResponse>(&client, messages, Some(system), 3).await
+}
+
+async fn book(cli: Cli, message: String) -> Result<()> {
+    let client = Config::build_from_cli(cli.api_key, cli.model, cli.max_tokens)?;
+
+    let response = parse_book_preferences(message, &client).await?;
+
+    let mut themes: HashMap<String, i16> = HashMap::new();
+    for book in response.books.iter().chain(
+        response
+            .series
+            .iter()
+            .flat_map(|series| series.books.iter()),
+    ) {
+        println!("{:?}", book.title);
+        for theme in book.themes.iter() {
+            let value = themes.entry(theme.clone()).or_insert(0);
+            *value += book.score as i16;
+        }
+    }
+
+    let mut collected: Vec<(&String, &i16)> = themes.iter().collect();
+    collected.sort_by_key(|&(_theme, score)| -score);
+    for (theme, score) in collected.iter() {
+        println!("{}: {}", score, theme)
+    }
+
+    let top_count = collected.len().min(5);
+    let selected_themes: Vec<&str> = collected[..top_count]
+        .iter()
+        .map(|&(theme, _score)| theme.as_str())
+        .collect();
+
+    suggest_books(client, selected_themes).await?;
+
+    Ok(())
+}
+
+async fn parse_book_preferences(
+    message: String,
+    client: &Client,
+) -> Result<BookResponse, anyhow::Error> {
+    let system = "\
+    interpret the user input to collect the information described below.
+    if only a title is provided and no author, attempt to identify the author yourself.
+    if a series is mentioned, report all the books in the series.
+    ";
+    let messages = Messages::new().push_user(message).clone();
+    send_with_json_retry::<BookResponse>(client, messages, Some(system.to_string()), 3).await
+}
+
+async fn suggest_books(
+    client: Client,
+    selected_themes: Vec<&str>,
+) -> Result<RecommendationResponse, anyhow::Error> {
+    let system = "\
+    provide five recommended books for the given themes.
+    ";
+    let messages = Messages::new()
+        .push_user(selected_themes.join(", "))
+        .clone();
+
+    send_with_json_retry::<RecommendationResponse>(&client, messages, Some(system.to_string()), 3)
+        .await
 }
