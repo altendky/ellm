@@ -108,9 +108,9 @@ async fn send_with_json_retry<T>(
     max_retries: usize,
 ) -> Result<T>
 where
-    T: serde::de::DeserializeOwned,
+    T: serde::de::DeserializeOwned + JsonSchema,
 {
-    let schema = schemars::schema_for!(BoolResponse);
+    let schema = schemars::schema_for!(T);
     let schema_json = serde_json::to_string_pretty(&schema)?;
     let jsonschema_system = format!(
         "encode the result to a json object that matches the following JSON schema:\n\n{}",
