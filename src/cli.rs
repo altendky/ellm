@@ -37,6 +37,12 @@ pub enum Commands {
         /// The question or prompt to ask
         question: String,
     },
+
+    /// Book subcommand
+    Book {
+        /// The message to send
+        message: String,
+    },
 }
 
 #[cfg(test)]
