@@ -36,9 +36,8 @@ jobs:
         uses: actions/checkout@v4
 
       - uses: ./.github/actions/setup-rust
-
-      - name: Install cargo-llvm-cov
-        run: cargo install cargo-llvm-cov --locked
+        with:
+          coverage: true
 
       - name: Check formatting
         run: cargo fmt --all -- --check
