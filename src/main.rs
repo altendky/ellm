@@ -2,6 +2,7 @@ use anyhow::{anyhow, Result};
 use clap::Parser;
 use ellm::{Client, Config, Messages};
 
+// Test comment added by Claude to verify commit signing functionality
 mod cli;
 use cli::{Cli, Commands};
 use serde::Deserialize;
