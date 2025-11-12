@@ -45,10 +45,6 @@ impl Messages {
         Messages { _messages: vec![] }
     }
 
-    pub fn as_vec(self) -> Vec<Message> {
-        self._messages
-    }
-
     pub fn push_user(&mut self, content: String) -> &mut Self {
         self._messages.push(Message {
             role: "user".into(),
@@ -67,6 +63,13 @@ impl Messages {
         self
     }
 }
+
+impl From<Messages> for Vec<Message> {
+    fn from(value: Messages) -> Self {
+        value._messages
+    }
+}
+
 /// Response structure from the Messages API
 #[derive(Debug, Deserialize)]
 #[allow(dead_code)]
@@ -138,7 +141,7 @@ impl Client {
             max_tokens: self.config.max_tokens,
             system,
             temperature: Some(0f32),
-            messages: messages.as_vec(),
+            messages: messages.into(),
         };
 
         let url = format!("{}/messages", self.config.base_url);
