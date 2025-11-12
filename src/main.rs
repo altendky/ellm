@@ -30,17 +30,7 @@ async fn main() -> Result<()> {
 }
 
 async fn send_message(cli: Cli, message: String) -> Result<()> {
-    // Load configuration with priority: CLI arg > env var > config file
-    let mut config = Config::load(cli.api_key)?;
-
-    // Apply CLI overrides
-    if let Some(model) = cli.model {
-        config = config.with_model(model);
-    }
-    config = config.with_max_tokens(cli.max_tokens);
-
-    // Create client and send message
-    let client = Client::new(config)?;
+    let client = Config::build_from_cli(cli.api_key, cli.model, cli.max_tokens)?;
 
     println!("Sending message to Claude...\n");
 
@@ -147,17 +137,7 @@ where
 }
 
 async fn bool(cli: Cli, message: String) -> Result<BoolResponse> {
-    // Load configuration with priority: CLI arg > env var > config file
-    let mut config = Config::load(cli.api_key)?;
-
-    // Apply CLI overrides
-    if let Some(model) = cli.model {
-        config = config.with_model(model);
-    }
-    config = config.with_max_tokens(cli.max_tokens);
-
-    // Create client and send message
-    let client = Client::new(config)?;
+    let client = Config::build_from_cli(cli.api_key, cli.model, cli.max_tokens)?;
 
     println!("Sending message to Claude...\n");
 
