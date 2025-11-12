@@ -37,6 +37,9 @@ jobs:
 
       - uses: ./.github/actions/setup-rust
 
+      - name: Install cargo-llvm-cov
+        run: cargo install cargo-llvm-cov --locked
+
       - name: Check formatting
         run: cargo fmt --all -- --check
 
@@ -46,8 +49,16 @@ jobs:
       - name: Build
         run: cargo build --verbose
 
-      - name: Run tests
-        run: cargo test --verbose
+      - name: Run tests with coverage
+        run: cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: lcov.info
+          fail_ci_if_error: true
+          verbose: true
+          flags: ${{ matrix.os.matrix }}
 
   pre-commit:
     name: ⚠️ Pre-commit ${{ matrix.os.name }}

@@ -5,7 +5,7 @@ runs:
   steps:
     - uses: dtolnay/rust-toolchain@1.91.0
       with:
-        components: rustfmt, clippy
+        components: rustfmt, clippy, llvm-tools-preview
 
     - name: Set environment variables
       shell: bash

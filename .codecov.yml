@@ -1,0 +1,28 @@
+codecov:
+  token: ddce8133-f370-437c-af29-508f3fb52c0e
+
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 0%
+        informational: true
+    patch:
+      default:
+        target: auto
+        threshold: 0%
+        informational: true
+
+comment:
+  layout: "diff, flags, files"
+  behavior: default
+  require_changes: false
+
+flags:
+  linux:
+    carryforward: false
+  windows:
+    carryforward: false
+  macos:
+    carryforward: false
