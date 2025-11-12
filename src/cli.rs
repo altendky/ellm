@@ -31,6 +31,12 @@ pub enum Commands {
 
     /// Show current configuration
     Config,
+
+    /// Ask Claude a yes/no question and get a boolean response
+    Bool {
+        /// The question or prompt to ask
+        question: String,
+    },
 }
 
 #[cfg(test)]
@@ -80,5 +86,42 @@ mod tests {
         let cli = Cli::try_parse_from(args).unwrap();
 
         assert!(matches!(cli.command, Commands::Config));
+    }
+
+    #[test]
+    fn test_cli_parse_bool() {
+        let args = vec!["ellm", "bool", "Is Rust a systems programming language?"];
+        let cli = Cli::try_parse_from(args).unwrap();
+
+        match cli.command {
+            Commands::Bool { question } => {
+                assert_eq!(question, "Is Rust a systems programming language?");
+            }
+            _ => panic!("Expected Bool command"),
+        }
+    }
+
+    #[test]
+    fn test_cli_parse_bool_with_options() {
+        let args = vec![
+            "ellm",
+            "--api-key",
+            "sk-ant-test",
+            "--max-tokens",
+            "10",
+            "bool",
+            "Is the sky blue?",
+        ];
+        let cli = Cli::try_parse_from(args).unwrap();
+
+        assert_eq!(cli.api_key, Some("sk-ant-test".to_string()));
+        assert_eq!(cli.max_tokens, 10);
+
+        match cli.command {
+            Commands::Bool { question } => {
+                assert_eq!(question, "Is the sky blue?");
+            }
+            _ => panic!("Expected Bool command"),
+        }
     }
 }

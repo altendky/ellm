@@ -14,6 +14,10 @@ pub struct Client {
 struct MessageRequest {
     model: String,
     max_tokens: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    system: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    temperature: Option<f32>,
     messages: Vec<Message>,
 }
 
@@ -22,6 +26,48 @@ struct MessageRequest {
 pub struct Message {
     pub role: String,
     pub content: String,
+}
+
+// TODO: do i really want Clone?
+#[derive(Clone, Debug, Serialize)]
+pub struct Messages {
+    _messages: Vec<Message>,
+}
+
+impl Default for Messages {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Messages {
+    pub fn new() -> Messages {
+        Messages { _messages: vec![] }
+    }
+
+    pub fn push_user(&mut self, content: String) -> &mut Self {
+        self._messages.push(Message {
+            role: "user".into(),
+            content,
+        });
+
+        self
+    }
+
+    pub fn push_assistant(&mut self, content: String) -> &mut Self {
+        self._messages.push(Message {
+            role: "assistant".into(),
+            content,
+        });
+
+        self
+    }
+}
+
+impl From<Messages> for Vec<Message> {
+    fn from(value: Messages) -> Self {
+        value._messages
+    }
 }
 
 /// Response structure from the Messages API
@@ -80,37 +126,41 @@ impl Client {
     }
 
     /// Send a message to Claude and get a response
-    pub async fn send_message(&self, content: impl Into<String>) -> Result<String> {
-        let message = Message {
-            role: "user".to_string(),
-            content: content.into(),
+    pub async fn send_message(
+        &self,
+        mut messages: Messages,
+        lead: Option<String>,
+        system: Option<String>,
+    ) -> Result<String> {
+        if let Some(lead) = lead {
+            messages.push_assistant(lead);
         };
 
         let request = MessageRequest {
             model: self.config.model.clone(),
             max_tokens: self.config.max_tokens,
-            messages: vec![message],
+            system,
+            temperature: Some(0f32),
+            messages: messages.into(),
         };
 
         let url = format!("{}/messages", self.config.base_url);
 
-        let response = self
+        let request = self
             .http_client
             .post(&url)
             .header("x-api-key", &self.config.api_key)
             .header("anthropic-version", "2023-06-01")
             .header("content-type", "application/json")
-            .json(&request)
-            .send()
-            .await?;
+            .json(&request);
 
+        let response = request.send().await?;
         let status = response.status();
+        let body = response.text().await?;
 
         if !status.is_success() {
-            let error_body = response.text().await?;
-
             // Try to parse as error response
-            if let Ok(error_resp) = serde_json::from_str::<ErrorResponse>(&error_body) {
+            if let Ok(error_resp) = serde_json::from_str::<ErrorResponse>(&body) {
                 return match status.as_u16() {
                     401 => Err(ApiError::AuthenticationFailed(error_resp.message).into()),
                     429 => Err(ApiError::RateLimitExceeded.into()),
@@ -124,14 +174,13 @@ impl Client {
 
             return Err(ApiError::ApiError {
                 status: status.as_u16(),
-                message: error_body,
+                message: body,
             }
             .into());
         }
 
-        let response_body = response.text().await?;
-        let message_response: MessageResponse = serde_json::from_str(&response_body)
-            .map_err(|e| ApiError::UnexpectedResponse(e.to_string()))?;
+        let message_response: MessageResponse =
+            serde_json::from_str(&body).map_err(|e| ApiError::UnexpectedResponse(e.to_string()))?;
 
         // Extract the text from the first content block
         let text = message_response
@@ -168,6 +217,8 @@ mod tests {
         let request = MessageRequest {
             model: "claude-sonnet-4-5-20250929".to_string(),
             max_tokens: 1024,
+            system: None,
+            temperature: None,
             messages: vec![Message {
                 role: "user".to_string(),
                 content: "Hello".to_string(),

@@ -22,6 +22,9 @@ pub enum ClaudeError {
     /// IO errors
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
+
+    #[error("Non-boolean response: {0}")]
+    Bool(String),
 }
 
 /// Configuration-specific errors

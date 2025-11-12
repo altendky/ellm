@@ -12,7 +12,7 @@
 //! ## Example
 //!
 //! ```no_run
-//! use ellm::{Client, Config};
+//! use ellm::{Client, Config, Messages};
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -23,7 +23,7 @@
 //!     let client = Client::new(config)?;
 //!
 //!     // Send a message
-//!     let response = client.send_message("Hello, Claude!").await?;
+//!     let response = client.send_message(Messages::new().push_user("Hello, Claude!".into()).clone(), None, None).await?;
 //!     println!("Response: {}", response);
 //!
 //!     Ok(())
@@ -35,7 +35,7 @@ mod config;
 mod error;
 
 // Re-export main types
-pub use client::{Client, Message};
+pub use client::{Client, Message, Messages};
 pub use config::Config;
 pub use error::{ApiError, ClaudeError, ConfigError, Result};
 

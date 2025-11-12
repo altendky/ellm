@@ -52,6 +52,8 @@ fn test_config_load_priority() {
 
 #[cfg(feature = "live_api_tests")]
 mod live_tests {
+    use ellm::Messages;
+
     use super::*;
 
     // These tests only run when explicitly enabled with --features live_api_tests
@@ -63,7 +65,13 @@ mod live_tests {
         let client = Client::new(config).expect("Failed to create client");
 
         let response = client
-            .send_message("Say 'Hello' and nothing else.")
+            .send_message(
+                Messages::new()
+                    .push_user("Say 'Hello' and nothing else.".to_string())
+                    .clone(),
+                None,
+                None,
+            )
             .await
             .expect("API call failed");
 
