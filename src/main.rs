@@ -7,7 +7,7 @@ use ellm::{Client, Config, Messages};
 mod cli;
 use cli::{Cli, Commands};
 use schemars::JsonSchema;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 /// Helper function to build a Client from Cli struct
 fn build_client(cli: &Cli) -> Result<Client> {
@@ -91,7 +91,7 @@ struct BoolResponse {
     explanation: String,
 }
 
-#[derive(Debug, Deserialize, JsonSchema)]
+#[derive(Debug, Deserialize, JsonSchema, Serialize)]
 #[allow(dead_code)]
 struct Book {
     title: String,
@@ -120,7 +120,7 @@ struct BookResponse {
     series: Vec<Series>,
 }
 
-#[derive(Debug, Deserialize, JsonSchema)]
+#[derive(Debug, Deserialize, JsonSchema, Serialize)]
 #[allow(dead_code)]
 struct RecommendationResponse {
     books: Vec<Book>,
@@ -172,8 +172,6 @@ where
             .await?;
         response.insert_str(0, lead);
 
-        println!("{}", response);
-
         // First validate as generic JSON
         if let Err(error) = json::parse(&response) {
             println!("{}", error);
@@ -213,7 +211,7 @@ async fn bool(cli: Cli, message: String) -> Result<BoolResponse> {
 }
 
 async fn book(cli: Cli, message: String) -> Result<()> {
-    let client = Config::build_from_cli(cli.api_key, cli.model, cli.max_tokens)?;
+    let client = build_client(&cli)?;
 
     let response = parse_book_preferences(message, &client).await?;
 
@@ -243,7 +241,11 @@ async fn book(cli: Cli, message: String) -> Result<()> {
         .map(|&(theme, _score)| theme.as_str())
         .collect();
 
-    suggest_books(client, selected_themes).await?;
+    let suggestions = suggest_books(client, selected_themes).await?;
+    println!(
+        "\n === Suggestions: ===\n\n{}",
+        serde_json::to_string_pretty(&suggestions)?
+    );
 
     Ok(())
 }
