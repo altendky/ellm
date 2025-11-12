@@ -4,6 +4,7 @@ use ellm::{Client, Config, Messages};
 
 mod cli;
 use cli::{Cli, Commands};
+use schemars::JsonSchema;
 use serde::Deserialize;
 
 /// Helper function to build a Client from Cli struct
@@ -76,10 +77,12 @@ fn show_config(cli: Cli) -> Result<()> {
     Ok(())
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, JsonSchema)]
 #[allow(dead_code)]
 struct BoolResponse {
+    /// when unable to assess the input clearly, default to false
     answer: bool,
+    /// provide an explanation of how you reached the answer
     explanation: String,
 }
 
@@ -107,13 +110,25 @@ async fn send_with_json_retry<T>(
 where
     T: serde::de::DeserializeOwned,
 {
+    let schema = schemars::schema_for!(BoolResponse);
+    let schema_json = serde_json::to_string_pretty(&schema)?;
+    let jsonschema_system = format!(
+        "encode the result to a json object that matches the following JSON schema:\n\n{}",
+        schema_json
+    );
+    let system = if let Some(system) = system {
+        format!("{}\n\n{}", system, jsonschema_system)
+    } else {
+        jsonschema_system
+    };
+
     let mut result: Option<T> = None;
 
     'retry: for _retry in 0..max_retries {
         // https://github.com/anthropics/claude-cookbooks/blob/main/misc/how_to_enable_json_mode.ipynb
         let lead = "{";
         let mut response = client
-            .send_message(messages.clone(), Some(lead.into()), system.clone())
+            .send_message(messages.clone(), Some(lead.into()), Some(system.clone()))
             .await?;
         response.insert_str(0, lead);
 
@@ -150,13 +165,9 @@ async fn bool(cli: Cli, message: String) -> Result<BoolResponse> {
 
     println!("Sending message to Claude...\n");
 
-    let system = "consider the question or statement and answer with a true or false.
-when unable to assess as a question or statement, default to false and explain.
-encode the result to a json object.
-the object should have a key 'answer' with a boolean value.
-the object should have a key 'explanation' with a string value.";
+    let system = "consider the question or statement and answer with a true or false.".into();
 
     let messages = Messages::new().push_user(message).clone();
 
-    send_with_json_retry::<BoolResponse>(&client, messages, Some(system.to_string()), 3).await
+    send_with_json_retry::<BoolResponse>(&client, messages, Some(system), 3).await
 }
