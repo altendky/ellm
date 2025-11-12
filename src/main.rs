@@ -6,6 +6,15 @@ mod cli;
 use cli::{Cli, Commands};
 use serde::Deserialize;
 
+/// Helper function to build a Client from Cli struct
+fn build_client(cli: &Cli) -> Result<Client> {
+    Ok(Config::build_from_cli(
+        cli.api_key.clone(),
+        cli.model.clone(),
+        cli.max_tokens,
+    )?)
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     let cli = Cli::parse();
@@ -30,7 +39,7 @@ async fn main() -> Result<()> {
 }
 
 async fn send_message(cli: Cli, message: String) -> Result<()> {
-    let client = Config::build_from_cli(cli.api_key, cli.model, cli.max_tokens)?;
+    let client = build_client(&cli)?;
 
     println!("Sending message to Claude...\n");
 
@@ -137,7 +146,7 @@ where
 }
 
 async fn bool(cli: Cli, message: String) -> Result<BoolResponse> {
-    let client = Config::build_from_cli(cli.api_key, cli.model, cli.max_tokens)?;
+    let client = build_client(&cli)?;
 
     println!("Sending message to Claude...\n");
 

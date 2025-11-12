@@ -124,11 +124,16 @@ impl Config {
         self
     }
 
-    /// Build a Client from CLI arguments
+    /// Build a Client from CLI-like arguments
     /// This is a convenience method that:
     /// 1. Loads config from multiple sources (CLI arg > env var > config file)
     /// 2. Applies CLI overrides for model and max_tokens
     /// 3. Creates and returns a Client
+    ///
+    /// # Arguments
+    /// * `api_key` - Optional API key from CLI
+    /// * `model` - Optional model override from CLI
+    /// * `max_tokens` - Max tokens from CLI
     pub fn build_from_cli(
         api_key: Option<String>,
         model: Option<String>,
