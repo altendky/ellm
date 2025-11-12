@@ -150,13 +150,11 @@ async fn bool(cli: Cli, message: String) -> Result<BoolResponse> {
 
     println!("Sending message to Claude...\n");
 
-    let system = concat!(
-        "consider the question or statement and answer with a true or false.",
-        "\nwhen unable to assess as a question or statement, default to false and explain.",
-        "\nencode the result to a json object.",
-        "\nthe object should have a key 'answer' with a boolean value.",
-        "\nthe object should have a key 'explanation' with a string value.",
-    );
+    let system = "consider the question or statement and answer with a true or false.
+when unable to assess as a question or statement, default to false and explain.
+encode the result to a json object.
+the object should have a key 'answer' with a boolean value.
+the object should have a key 'explanation' with a string value.";
 
     let messages = Messages::new().push_user(message).clone();
 
