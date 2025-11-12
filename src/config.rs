@@ -123,6 +123,27 @@ impl Config {
         self.max_tokens = max_tokens;
         self
     }
+
+    /// Build a Client from CLI arguments
+    /// This is a convenience method that:
+    /// 1. Loads config from multiple sources (CLI arg > env var > config file)
+    /// 2. Applies CLI overrides for model and max_tokens
+    /// 3. Creates and returns a Client
+    pub fn build_from_cli(
+        api_key: Option<String>,
+        model: Option<String>,
+        max_tokens: u32,
+    ) -> Result<crate::Client> {
+        let mut config = Self::load(api_key)?;
+
+        // Apply CLI overrides
+        if let Some(model) = model {
+            config = config.with_model(model);
+        }
+        config = config.with_max_tokens(max_tokens);
+
+        crate::Client::new(config)
+    }
 }
 
 #[cfg(test)]
