@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use clap::Parser;
-use ellm::{Config, Messages};
+use ellm::{Client, Config, Messages};
 
 mod cli;
 use cli::{Cli, Commands};
