@@ -1,0 +1,22 @@
+name: Experiment - Called Workflow
+
+on:
+  workflow_dispatch:
+    inputs:
+      message:
+        description: "Message to display"
+        required: false
+        default: "Hello from called workflow"
+        type: string
+
+jobs:
+  called-job:
+    name: Called Job
+    runs-on: ubuntu-latest
+    steps:
+      - name: Display message
+        run: |
+          echo "This is the called workflow"
+          echo "Message: ${{ inputs.message }}"
+          echo "Triggered by: ${{ github.event_name }}"
+          echo "Workflow ref: ${{ github.workflow_ref }}"
