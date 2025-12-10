@@ -12,6 +12,8 @@ jobs:
     name: Caller Job
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
       - name: Display info
         run: |
           echo "This is the caller workflow"
