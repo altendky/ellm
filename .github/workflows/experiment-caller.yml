@@ -1,0 +1,23 @@
+name: Experiment - Caller Workflow
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: ["**"]
+  workflow_dispatch:
+
+jobs:
+  caller-job:
+    name: Caller Job
+    runs-on: ubuntu-latest
+    steps:
+      - name: Display info
+        run: |
+          echo "This is the caller workflow"
+          echo "About to call the other workflow..."
+
+      - name: Call Other Workflow
+        uses: ./.github/workflows/experiment-called.yml
+        with:
+          message: "Called from experiment-caller workflow"
