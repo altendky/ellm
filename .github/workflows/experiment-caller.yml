@@ -12,14 +12,14 @@ jobs:
     name: Caller Job
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
       - name: Display info
         run: |
           echo "This is the caller workflow"
           echo "About to call the other workflow..."
 
-      - name: Call Other Workflow
-        uses: ./.github/workflows/experiment-called.yml
-        with:
-          message: "Called from experiment-caller workflow"
+  call-other-workflow:
+    name: Call Other Workflow
+    needs: caller-job
+    uses: ./.github/workflows/experiment-called.yml
+    with:
+      message: "Called from experiment-caller workflow"
